@@ -206,6 +206,13 @@ const KEY_ROWS = [
   ["ENTER", "Z", "X", "C", "V", "B", "N", "M", "BACK"],
 ];
 
+const PUBLIC_UNLOCKED_PROGRESS = {
+  0: true,
+  1: true,
+  2: true,
+  3: true,
+};
+
 function evaluateGuess(answer, guess) {
   const answerLetters = answer.split("");
   const result = new Array(5).fill("absent");
@@ -504,7 +511,7 @@ function PlayerModal({ index, puzzle, onClose }) {
 }
 
 export default function Page() {
-  const [progress, setProgress] = useState({});
+  const [progress, setProgress] = useState(PUBLIC_UNLOCKED_PROGRESS);
   const [hydrated, setHydrated] = useState(false);
   const [activeIndex, setActiveIndex] = useState(null);
   const [playerIndex, setPlayerIndex] = useState(null);
@@ -513,7 +520,7 @@ export default function Page() {
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORE_KEY);
-      if (raw) setProgress(JSON.parse(raw));
+      if (raw) setProgress({ ...JSON.parse(raw), ...PUBLIC_UNLOCKED_PROGRESS });
     } catch (e) {}
     setHydrated(true);
   }, []);
