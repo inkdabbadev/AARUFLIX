@@ -3,6 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import { PUZZLES, COLORS, STORE_KEY } from "@/lib/puzzles";
 
+const VISIBLE_PUZZLE_INDEXES = PUZZLES.map((p, index) => (p.type === "connections" ? index : null)).filter(
+  (index) => index !== null
+);
+const VISIBLE_PUZZLES = VISIBLE_PUZZLE_INDEXES.map((index) => ({ ...PUZZLES[index], originalIndex: index }));
+const PUBLIC_UNLOCKED_PROGRESS = Object.fromEntries(VISIBLE_PUZZLE_INDEXES.slice(0, 4).map((index) => [index, true]));
+
 function shuffle(arr) {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -24,21 +30,20 @@ function Dots({ count, used, hint }) {
 
 function EpisodeCard({ puzzle, unlocked, onOpen }) {
   const num = puzzle.label.split(" ")[1] || "01";
-  const isWordle = puzzle.type === "wordle";
   return (
     <div
-      className={"card" + (isWordle ? " wordle-card" : "") + (unlocked ? " unlocked" : "")}
+      className={"card" + (unlocked ? " unlocked" : "")}
       onClick={onOpen}
     >
       <div className="art">{num}</div>
       <div className="lock-badge">{unlocked ? "▶" : "\u{1F512}"}</div>
-      <div className="type-badge">{isWordle ? "WORDLE" : "CONNECTIONS"}</div>
+      <div className="type-badge">CONNECTIONS</div>
       <div className="info">
         <span className="t">{puzzle.label}</span>
         <span className="code">{unlocked ? puzzle.passcode : "Locked"}</span>
       </div>
       <div className="hover-strip">
-        {unlocked ? "Tap to watch" : isWordle ? "Tap to play Wordle" : "Tap to solve the puzzle"}
+        {unlocked ? "Tap to watch" : "Tap to solve the puzzle"}
       </div>
     </div>
   );
@@ -200,189 +205,6 @@ function ConnectionsModal({ puzzle, onClose, onWin, onLose }) {
   );
 }
 
-const KEY_ROWS = [
-  ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
-  ["A", "S", "D", "F", "G", "H", "J", "K", "L"],
-  ["ENTER", "Z", "X", "C", "V", "B", "N", "M", "BACK"],
-];
-
-const PUBLIC_UNLOCKED_PROGRESS = {
-  0: true,
-  1: true,
-  2: true,
-  3: true,
-};
-
-function evaluateGuess(answer, guess) {
-  const answerLetters = answer.split("");
-  const result = new Array(5).fill("absent");
-  const used = new Array(5).fill(false);
-  for (let i = 0; i < 5; i++) {
-    if (guess[i] === answerLetters[i]) {
-      result[i] = "correct";
-      used[i] = true;
-    }
-  }
-  for (let i = 0; i < 5; i++) {
-    if (result[i] === "correct") continue;
-    const idx = answerLetters.findIndex((ch, j) => ch === guess[i] && !used[j]);
-    if (idx !== -1) {
-      result[i] = "present";
-      used[idx] = true;
-    }
-  }
-  return result;
-}
-
-function WordleModal({ puzzle, onClose, onWin, onLose }) {
-  const answer = puzzle.answer.toUpperCase();
-  const [guesses, setGuesses] = useState([]);
-  const [current, setCurrent] = useState("");
-  const [hintsUsed, setHintsUsed] = useState(0);
-  const [keyStatus, setKeyStatus] = useState({});
-  const [message, setMessage] = useState("");
-  const [hintText, setHintText] = useState("");
-  const [done, setDone] = useState(false);
-
-  function submit() {
-    if (current.length !== 5) {
-      setMessage("Not enough letters");
-      return;
-    }
-    setMessage("");
-    const result = evaluateGuess(answer, current);
-    const newGuesses = [...guesses, { word: current, result }];
-    setGuesses(newGuesses);
-
-    setKeyStatus((ks) => {
-      const copy = { ...ks };
-      const rank = { absent: 0, present: 1, correct: 2 };
-      current.split("").forEach((ch, i) => {
-        const status = result[i];
-        if (!copy[ch] || rank[status] > rank[copy[ch]]) copy[ch] = status;
-      });
-      return copy;
-    });
-
-    const guessWord = current;
-    setCurrent("");
-
-    if (guessWord === answer) {
-      setDone(true);
-      setTimeout(() => onWin(), 350);
-    } else if (newGuesses.length >= 6) {
-      setDone(true);
-      setTimeout(() => onLose(), 300);
-    }
-  }
-
-  function handleKey(key) {
-    if (done) return;
-    if (key === "ENTER") submit();
-    else if (key === "BACK") setCurrent((c) => c.slice(0, -1));
-    else if (/^[A-Z]$/.test(key)) setCurrent((c) => (c.length < 5 ? c + key : c));
-  }
-
-  useEffect(() => {
-    function onKeyDown(e) {
-      const k = e.key.toUpperCase();
-      if (k === "ENTER") handleKey("ENTER");
-      else if (k === "BACKSPACE") handleKey("BACK");
-      else if (/^[A-Z]$/.test(k)) handleKey(k);
-    }
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [current, done, guesses]);
-
-  function giveHint() {
-    if (hintsUsed >= 3) return;
-    const n = hintsUsed + 1;
-    setHintsUsed(n);
-    if (n === 1) setHintText(`Hint: ${puzzle.clue}`);
-    else if (n === 2) setHintText(`Hint: it starts with "${answer[0]}"`);
-    else setHintText(`Out of hints — the word is "${answer}"`);
-  }
-
-  return (
-    <div
-      className="overlay show"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div className="panel">
-        <div className="puzzle-header">
-          <span className="close-btn" onClick={onClose}>
-            &#8592;
-          </span>
-          <div className="icons">
-            <span className={"icon-hint" + (hintsUsed >= 3 ? " disabled" : "")} onClick={giveHint} title="Help me">
-              &#128161;
-            </span>
-            <span>&#128202;</span>
-            <span>&#10067;</span>
-          </div>
-          <span className="puzzle-pill">{puzzle.label}</span>
-        </div>
-        <p className="puzzle-prompt">Guess the five-letter word!</p>
-        <p className="vague-hint">{puzzle.vagueClue}</p>
-
-        <div className="wordle-board">
-          {Array.from({ length: 6 }).map((_, r) => {
-            const g = guesses[r];
-            const letters = g ? g.word.split("") : r === guesses.length ? current.split("") : [];
-            return (
-              <div key={r} className="wordle-row">
-                {Array.from({ length: 5 }).map((__, c) => {
-                  const ch = letters[c] || "";
-                  const cls = g ? g.result[c] : ch ? "filled" : "";
-                  return (
-                    <div key={c} className={"wordle-tile " + cls}>
-                      {ch}
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="mistakes-row">{message}</div>
-        <div className="mistakes-row">
-          Hints Remaining: <Dots count={3} used={hintsUsed} hint />
-        </div>
-        <div className="hint-text">{hintText}</div>
-
-        <div className="wordle-keyboard">
-          {KEY_ROWS.map((row, i) => (
-            <div key={i} className="wordle-krow">
-              {row.map((k) => (
-                <button
-                  key={k}
-                  className={
-                    "wkey" +
-                    (k === "ENTER" || k === "BACK" ? " wide" : "") +
-                    (k.length === 1 && keyStatus[k] ? " " + keyStatus[k] : "")
-                  }
-                  onClick={() => handleKey(k)}
-                >
-                  {k === "BACK" ? "⌫" : k}
-                </button>
-              ))}
-            </div>
-          ))}
-        </div>
-
-        <div className="actions-row">
-          <button className="pbtn hint" disabled={hintsUsed >= 3} onClick={giveHint}>
-            &#128161; Help Me
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function ResultOverlay({ result, puzzle, onWatch, onRetry, onClose }) {
   return (
     <div
@@ -416,18 +238,6 @@ function ResultOverlay({ result, puzzle, onWatch, onRetry, onClose }) {
                 <div className="words">{g.words.join(", ")}</div>
               </div>
             ))}
-            <div style={{ marginTop: 16 }}>
-              <button className="pbtn primary" onClick={onRetry}>
-                Try again
-              </button>
-            </div>
-          </>
-        )}
-        {result.kind === "lose-wordle" && (
-          <>
-            <h2>Out of guesses</h2>
-            <p>The word was:</p>
-            <div className="passcode-box">{puzzle.answer}</div>
             <div style={{ marginTop: 16 }}>
               <button className="pbtn primary" onClick={onRetry}>
                 Try again
@@ -540,11 +350,6 @@ export default function Page() {
     setActiveIndex(null);
     setResult({ kind: "lose-connections", index: i, remainingGroups, solvedCount });
   }
-  function handleLoseWordle() {
-    const i = activeIndex;
-    setActiveIndex(null);
-    setResult({ kind: "lose-wordle", index: i });
-  }
 
   function watchNow() {
     const i = result.index;
@@ -558,7 +363,7 @@ export default function Page() {
   }
 
   const activePuzzle = activeIndex != null ? PUZZLES[activeIndex] : null;
-  const unlockedCount = Object.values(progress).filter(Boolean).length;
+  const unlockedCount = VISIBLE_PUZZLE_INDEXES.filter((index) => progress[index]).length;
 
   return (
     <>
@@ -569,7 +374,7 @@ export default function Page() {
         <div className="nav-right">
           <span className="icon-btn">&#128269;</span>
           <span className="progress-pill">
-            {unlockedCount} / {PUZZLES.length} unlocked
+            {unlockedCount} / {VISIBLE_PUZZLES.length} unlocked
           </span>
           <span className="icon-btn">&#128276;</span>
           <div className="avatar">A</div>
@@ -581,8 +386,7 @@ export default function Page() {
           <div className="hero-tag">An AaruFlix Original</div>
           <h1 className="hero-title">The Rookie Marathon</h1>
           <p className="hero-desc">
-            Eighteen locked tapes. Crack the Connections grid or the Wordle of the day to get the
-            passcode and unlock the clip.
+            Nine tapes. Crack each Connections grid to get the passcode and unlock the clip.
           </p>
           <div className="hero-actions">
             <button
@@ -598,12 +402,14 @@ export default function Page() {
       <main>
         <div className="row-block" id="episode-row">
           <div className="row-scroll">
-            {PUZZLES.map((p, i) => (
+            {VISIBLE_PUZZLES.map((p) => (
               <EpisodeCard
-                key={i}
+                key={p.originalIndex}
                 puzzle={p}
-                unlocked={!!progress[i]}
-                onOpen={() => (progress[i] ? setPlayerIndex(i) : setActiveIndex(i))}
+                unlocked={!!progress[p.originalIndex]}
+                onOpen={() =>
+                  progress[p.originalIndex] ? setPlayerIndex(p.originalIndex) : setActiveIndex(p.originalIndex)
+                }
               />
             ))}
           </div>
@@ -619,16 +425,6 @@ export default function Page() {
           onLose={handleLoseConnections}
         />
       )}
-      {activePuzzle && activePuzzle.type === "wordle" && (
-        <WordleModal
-          key={activeIndex}
-          puzzle={activePuzzle}
-          onClose={() => setActiveIndex(null)}
-          onWin={handleWin}
-          onLose={handleLoseWordle}
-        />
-      )}
-
       {result && (
         <ResultOverlay
           result={result}

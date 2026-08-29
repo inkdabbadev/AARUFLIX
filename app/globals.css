@@ -122,7 +122,6 @@ main{padding:0 0 90px; position:relative; margin-top:24px;}
   border:1px solid rgba(159,184,232,0.5);
   font-size:9px; font-weight:800; letter-spacing:1px; padding:3px 6px; border-radius:4px;
 }
-.card.wordle-card .type-badge{background:rgba(168,195,126,0.18); color:var(--c2); border-color:rgba(168,195,126,0.5);}
 .card .info{position:absolute; left:0; right:0; bottom:0; padding:10px 10px 12px; background:linear-gradient(to top, rgba(0,0,0,0.92), transparent);}
 .card .info .t{font-size:13px; font-weight:800; display:block;}
 .card .info .code{display:block; font-family:monospace; font-size:10px; color:var(--c2); margin-top:3px;}
@@ -187,31 +186,6 @@ main{padding:0 0 90px; position:relative; margin-top:24px;}
 .icon-hint{cursor:pointer; transition:transform .15s ease; display:inline-block;}
 .icon-hint:hover{transform:scale(1.2);}
 .icon-hint.disabled{opacity:.3; cursor:default; pointer-events:none;}
-
-/* ---------------- Wordle ---------------- */
-.wordle-board{display:flex; flex-direction:column; gap:6px; align-items:center; padding:4px 20px 8px;}
-.wordle-row{display:flex; gap:6px;}
-.wordle-tile{
-  width:46px; height:46px; border-radius:6px; display:flex; align-items:center; justify-content:center;
-  font-weight:800; font-size:20px; text-transform:uppercase; border:2px solid rgba(255,255,255,0.18);
-  color:#eee; background:transparent; transition:transform .15s ease, background .2s ease, border-color .2s ease;
-}
-.wordle-tile.filled{border-color:rgba(255,255,255,0.4);}
-.wordle-tile.correct{background:var(--c2); border-color:var(--c2); color:#152009;}
-.wordle-tile.present{background:var(--c1); border-color:var(--c1); color:#2b2005;}
-.wordle-tile.absent{background:#2a2a2a; border-color:#2a2a2a; color:#888;}
-.wordle-keyboard{display:flex; flex-direction:column; gap:6px; align-items:center; padding:6px 12px 0;}
-.wordle-krow{display:flex; gap:5px;}
-.wkey{
-  min-width:30px; height:42px; padding:0 8px; border-radius:5px; border:none; cursor:pointer;
-  background:#3a3a3a; color:#eee; font-weight:700; font-size:12px;
-  display:flex; align-items:center; justify-content:center; transition:background .15s ease;
-}
-.wkey.wide{min-width:48px; font-size:10px;}
-.wkey:hover{background:#4a4a4a;}
-.wkey.correct{background:var(--c2); color:#152009;}
-.wkey.present{background:var(--c1); color:#2b2005;}
-.wkey.absent{background:#222; color:#666;}
 
 /* ---------------- Result ---------------- */
 .result-panel{background:#0e0e0e; width:min(430px,90vw); border-radius:14px; padding:34px 26px; text-align:center; border:1px solid rgba(255,255,255,0.12);}
