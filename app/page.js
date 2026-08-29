@@ -3,11 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import { PUZZLES, COLORS, STORE_KEY } from "@/lib/puzzles";
 
-const VISIBLE_PUZZLE_INDEXES = PUZZLES.map((p, index) => (p.type === "connections" ? index : null)).filter(
-  (index) => index !== null
-);
-const VISIBLE_PUZZLES = VISIBLE_PUZZLE_INDEXES.map((index) => ({ ...PUZZLES[index], originalIndex: index }));
-const PUBLIC_UNLOCKED_PROGRESS = Object.fromEntries(VISIBLE_PUZZLE_INDEXES.slice(0, 4).map((index) => [index, true]));
+const PUBLIC_UNLOCKED_PROGRESS = {
+  0: true,
+  1: true,
+  2: true,
+  3: true,
+};
 
 function shuffle(arr) {
   const a = [...arr];
@@ -30,20 +31,21 @@ function Dots({ count, used, hint }) {
 
 function EpisodeCard({ puzzle, unlocked, onOpen }) {
   const num = puzzle.label.split(" ")[1] || "01";
+  const isWordle = puzzle.type === "wordle";
   return (
     <div
-      className={"card" + (unlocked ? " unlocked" : "")}
+      className={"card" + (isWordle ? " wordle-card" : "") + (unlocked ? " unlocked" : "")}
       onClick={onOpen}
     >
       <div className="art">{num}</div>
       <div className="lock-badge">{unlocked ? "▶" : "\u{1F512}"}</div>
-      <div className="type-badge">CONNECTIONS</div>
+      <div className="type-badge">{isWordle ? "WORDLE" : "CONNECTIONS"}</div>
       <div className="info">
         <span className="t">{puzzle.label}</span>
         <span className="code">{unlocked ? puzzle.passcode : "Locked"}</span>
       </div>
       <div className="hover-strip">
-        {unlocked ? "Tap to watch" : "Tap to solve the puzzle"}
+        {unlocked ? "Tap to watch" : isWordle ? "Wordle game hidden" : "Tap to solve the puzzle"}
       </div>
     </div>
   );
@@ -362,8 +364,17 @@ export default function Page() {
     setActiveIndex(i);
   }
 
+  function openEpisode(index) {
+    const puzzle = PUZZLES[index];
+    if (progress[index]) {
+      setPlayerIndex(index);
+    } else if (puzzle.type === "connections") {
+      setActiveIndex(index);
+    }
+  }
+
   const activePuzzle = activeIndex != null ? PUZZLES[activeIndex] : null;
-  const unlockedCount = VISIBLE_PUZZLE_INDEXES.filter((index) => progress[index]).length;
+  const unlockedCount = Object.values(progress).filter(Boolean).length;
 
   return (
     <>
@@ -374,7 +385,7 @@ export default function Page() {
         <div className="nav-right">
           <span className="icon-btn">&#128269;</span>
           <span className="progress-pill">
-            {unlockedCount} / {VISIBLE_PUZZLES.length} unlocked
+            {unlockedCount} / {PUZZLES.length} unlocked
           </span>
           <span className="icon-btn">&#128276;</span>
           <div className="avatar">A</div>
@@ -386,7 +397,7 @@ export default function Page() {
           <div className="hero-tag">An AaruFlix Original</div>
           <h1 className="hero-title">The Rookie Marathon</h1>
           <p className="hero-desc">
-            Nine tapes. Crack each Connections grid to get the passcode and unlock the clip.
+            Eighteen tapes. Crack the Connections grids to get passcodes and unlock clips.
           </p>
           <div className="hero-actions">
             <button
@@ -402,14 +413,12 @@ export default function Page() {
       <main>
         <div className="row-block" id="episode-row">
           <div className="row-scroll">
-            {VISIBLE_PUZZLES.map((p) => (
+            {PUZZLES.map((p, i) => (
               <EpisodeCard
-                key={p.originalIndex}
+                key={i}
                 puzzle={p}
-                unlocked={!!progress[p.originalIndex]}
-                onOpen={() =>
-                  progress[p.originalIndex] ? setPlayerIndex(p.originalIndex) : setActiveIndex(p.originalIndex)
-                }
+                unlocked={!!progress[i]}
+                onOpen={() => openEpisode(i)}
               />
             ))}
           </div>
