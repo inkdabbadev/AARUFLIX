@@ -3,12 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { PUZZLES, COLORS, STORE_KEY } from "@/lib/puzzles";
 
-const PUBLIC_UNLOCKED_PROGRESS = {
-  0: true,
-  1: true,
-  2: true,
-  3: true,
-};
+const PUBLIC_UNLOCKED_PROGRESS = Object.fromEntries(PUZZLES.map((_, index) => [index, true]));
 
 function shuffle(arr) {
   const a = [...arr];
